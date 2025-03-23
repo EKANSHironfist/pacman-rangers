@@ -4,6 +4,7 @@ from game import Directions
 from dataclasses import dataclass
 import math
 import time
+from config import *
 
 class MCTSAgent(CaptureAgent):
     """
@@ -34,7 +35,7 @@ class MCTSAgent(CaptureAgent):
                 continue  # Prevent unnecessary expansions
             if not node.is_terminal(): # If the node is not terminal then perfrom expansion and rollout
                 node = node.expand() # Expand unattempted actions
-            reward = node.rollout() # Simulate rollout
+            reward = node.rollout(max_depth=rollout_depth,epsilon=epsilon) # Simulate rollout
             node.backpropagate(reward) # Backpropagate the reward to the upper nodes of the tree
         print(root_node.untried_actions)
         return root_node.best_action() # Return the best action
@@ -65,7 +66,7 @@ class MCTSNode:
         if not self.children:
             return self
         
-        return max(self.children, key= lambda child: child.ucb1(1.4))
+        return max(self.children, key= lambda child: child.ucb1(Cp))
     
     def expand(self):
         if not self.untried_actions:
