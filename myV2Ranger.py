@@ -104,7 +104,7 @@ class MCTSNode:
                     next_pos = next_state.getAgentPosition(self.agentIndex)
                     score = next_state.getScore()
                     if next_pos in visited_positions:
-                        score -= 2*visited_positions.count(next_pos)
+                        score -= 1.8*visited_positions.count(next_pos)
                     scores.append(score)
                 max_score = max(scores)
                 best_actions = [action for index,action in enumerate(actions) if scores[index]==max_score]
