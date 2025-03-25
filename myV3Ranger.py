@@ -8,10 +8,7 @@ from config import *
 import util
 
 class MCTSAgent(CaptureAgent):
-    """
-    A simple agent that picks a random legal action.
-    """
-
+ 
     def registerInitialState(self, gameState):
         """
         Initialize the agent at the start of the game.
@@ -165,15 +162,139 @@ class MCTSAgent(CaptureAgent):
             
                 return root_node.best_action() # Return the best action
 
-        else: #when at homebase defending
+        else: #when at homebase
             ghosts = self.detect_enemy_ghost(gameState)
             values = [self.evaluate_def(gameState, a, ghosts) for a in legal_actions]
             maxValue = max(values)
             bestActions = [a for a, v in zip(legal_actions, values) if v == maxValue]
             return random.choice(bestActions)
 
+
 class DefensiveAgent(MCTSAgent):
-    pass
+
+    """
+    A sophisticated defensive agent that strategically protects its territory
+    by tracking and intercepting enemy Pacman agents.
+    """
+    def get_defensive_features(self, game_state, action):
+        """
+        Extract defensive features for the given action and game state.
+        
+        Args:
+            game_state: The current game state
+            action: Proposed action to evaluate
+        
+        Returns:
+            util.Counter: A collection of defensive features
+        """
+        features = util.Counter()
+        next_state = self.get_next_state(game_state, action)
+        my_state = next_state.getAgentState(self.index)
+        my_position = my_state.getPosition()
+
+        # Defensive state assessment
+        features['defense_status'] = self._assess_defense_status(my_state)
+        
+        # Invader tracking
+        invaders = self._find_invaders(next_state)
+        features['invader_count'] = len(invaders)
+        
+        # Distance to nearest invader
+        features['nearest_invader_distance'] = self._calculate_nearest_invader_distance(
+            my_position, invaders
+        )
+        
+        # Movement penalty features
+        features['stop_penalty'] = self._check_stop_action(action, game_state)
+        features['reverse_penalty'] = self._check_reverse_action(action, game_state)
+        
+        return features
+
+    def _assess_defense_status(self, agent_state):
+        """
+        Determine if the agent is currently in a defensive position.
+        
+        Args:
+            agent_state: Current state of the agent
+        
+        Returns:
+            int: 1 if defending, 0 if compromised
+        """
+        return 0 if agent_state.isPacman else 1
+
+    def _find_invaders(self, game_state):
+        """
+        Identify enemy Pacman agents in the game state.
+        
+        Args:
+            game_state: Current game state
+        
+        Returns:
+            list: List of invading Pacman agents
+        """
+        enemies = [game_state.getAgentState(i) for i in self.getOpponents(game_state)]
+        return [enemy for enemy in enemies if enemy.isPacman and enemy.getPosition() is not None]
+
+    def _calculate_nearest_invader_distance(self, my_position, invaders):
+        """
+        Calculate the distance to the nearest invader.
+        
+        Args:
+            my_position: Current agent position
+            invaders: List of invading Pacman agents
+        
+        Returns:
+            float: Distance to nearest invader, or max value if no invaders
+        """
+        return min([self.getMazeDistance(my_position, invader.getPosition()) 
+                    for invader in invaders]) if invaders else float('inf')
+
+    def _check_stop_action(self, action, game_state):
+        """
+        Penalize stopping action.
+        
+        Args:
+            action: Proposed action
+            game_state: Current game state
+        
+        Returns:
+            int: Penalty for stop action
+        """
+        return 1 if action == Directions.STOP else 0
+
+    def _check_reverse_action(self, action, game_state):
+        """
+        Penalize reversing direction.
+        
+        Args:
+            action: Proposed action
+            game_state: Current game state
+        
+        Returns:
+            int: Penalty for reverse action
+        """
+        current_direction = game_state.getAgentState(self.index).configuration.direction
+        reverse_direction = Directions.REVERSE[current_direction]
+        return 1 if action == reverse_direction else 0
+
+    def get_defensive_weights(self, game_state, action):
+        """
+        Define weights for defensive features.
+        
+        Args:
+            game_state: Current game state
+            action: Proposed action
+        
+        Returns:
+            dict: Weights for defensive features
+        """
+        return {
+            'invader_count': -1000,  # Strong negative weight for invaders
+            'defense_status': 100,   # Reward for staying in defensive territory
+            'nearest_invader_distance': -10,  # Encourage approaching invaders
+            'stop_penalty': -100,    # Strongly discourage stopping
+            'reverse_penalty': -2    # Slight penalty for reversing
+        }
 
 
 class MCTSNode:
@@ -290,4 +411,4 @@ def createTeam(firstIndex, secondIndex, isRed,
     """
     Returns a team of two random-action agents.
     """
-    return [MCTSAgent(firstIndex), MCTSAgent(secondIndex)]
+    return [MCTSAgent(firstIndex), DefensiveAgent(secondIndex)]
