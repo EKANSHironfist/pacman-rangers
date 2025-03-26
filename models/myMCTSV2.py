@@ -202,7 +202,7 @@ class OffensiveAgent(CaptureAgent):
                 f.write(",".join(result.keys()) + "\n")
             f.write(",".join(str(v) for v in result.values()) + "\n")
 
-class DefensiveAgent(ActsAgent):
+class DefensiveAgent(OffensiveAgent):
     
     def evaluate(self, gameState):
         features = util.Counter()
