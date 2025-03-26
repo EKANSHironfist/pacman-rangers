@@ -1,0 +1,7 @@
+agentType,won,score,avgDecisionTime,epsilon,rolloutDepth,Cp
+Guided,False,17,0.2048,0.2,5,0.707
+Guided,False,17,0.2049,0.2,5,0.707
+Guided,False,18,0.2059,0.2,5,0.707
+Guided,False,18,0.2054,0.2,5,0.707
+Guided,False,18,0.2056,0.2,5,0.707
+Guided,False,18,0.2056,0.2,5,0.707

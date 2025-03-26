@@ -6,16 +6,16 @@ from time import sleep
 
 # === Paths ===
 CONFIG_PATH = "config.json"  # Used by your myTeam.py agent
-LOG_PATH = "experiment_logs.csv"
+LOG_PATH = "experiment_test.csv"
 LAYOUT = "layouts/defaultCapture.lay"
 CAPTURE_COMMAND_TEMPLATE = "python capture.py -r baselineTeam -b myTeam -l {layout} -q -n 1"
 
 # === Hyperparameter Grid ===
-rollout_depths = [3, ]
-epsilons = [0.1]
-exploration_constants = [0.5]
-use_heuristics = [True, False]
-games_per_config = 1
+rollout_depths = [5]
+epsilons = [0.2]
+exploration_constants = [0.707]
+use_heuristics = [True]
+games_per_config = 2
 
 # === Clear log file if it exists ===
 if os.path.exists(LOG_PATH):
