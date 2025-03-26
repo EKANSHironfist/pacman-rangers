@@ -3,7 +3,7 @@ import random, time, util, math, os, json
 from game import Directions
 import game
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_rave.json")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_custom.json")
 with open(CONFIG_PATH) as f:
     MCTS_CONFIG = json.load(f)
 
