@@ -1,0 +1,6 @@
+{
+  "rolloutDepth": 3,
+  "epsilon": 0.1,
+  "explorationConstant": 0.5,
+  "useHeuristicRollouts": true
+}
