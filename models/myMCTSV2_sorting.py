@@ -79,13 +79,23 @@ class OffensiveAgent(CaptureAgent):
             node = self.bestChild(node, Cp)
         return node
 
+    #def expand(self, node):
+    #    action = node.untriedActions.pop()
+    #    nextState = node.gameState.generateSuccessor(self.index, action)
+    #    child = Node(nextState, self.index, parent=node, action=action)
+    #    node.children.append(child)
+    #    return child
+    # Sorts the untried actions so that the best-looking one (based on your own evaluate() function) comes first.
     def expand(self, node):
+        if MCTS_CONFIG.get("biasedExpansion", False):
+            node.untriedActions.sort(
+                key=lambda a: -self.evaluate(node.gameState.generateSuccessor(self.index, a))
+            )
         action = node.untriedActions.pop()
         nextState = node.gameState.generateSuccessor(self.index, action)
         child = Node(nextState, self.index, parent=node, action=action)
         node.children.append(child)
         return child
-    
 
     def simulate(self, node):
         state = node.gameState

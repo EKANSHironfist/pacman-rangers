@@ -1,0 +1,3 @@
+agentType,won,score,avgDecisionTime,epsilon,rolloutDepth,Cp
+RAVE,True,-9,0.2005,0.2,5,1.0
+RAVE,True,-9,0.2006,0.2,5,1.0

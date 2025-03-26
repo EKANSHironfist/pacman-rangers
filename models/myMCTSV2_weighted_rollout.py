@@ -3,7 +3,7 @@ import random, time, util, math, os, json
 from game import Directions
 import game
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_custom.json")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_weighted.json")
 with open(CONFIG_PATH) as f:
     MCTS_CONFIG = json.load(f)
 
@@ -92,6 +92,8 @@ class OffensiveAgent(CaptureAgent):
         depth = MCTS_CONFIG.get("rolloutDepth", 5)
         epsilon = MCTS_CONFIG.get("epsilon", 0.2)
         useHeuristic = MCTS_CONFIG.get("useHeuristicRollouts", False)
+        useSoftmax = MCTS_CONFIG.get("softmaxRollout", False)
+        temperature = MCTS_CONFIG.get("softmaxTemperature", 10.0)
 
         for _ in range(depth):
             actions = state.getLegalActions(self.index)
@@ -100,24 +102,34 @@ class OffensiveAgent(CaptureAgent):
                 break
 
             if useHeuristic:
-                if random.random() < epsilon:
-                    action = random.choice(actions)
+                if useSoftmax:
+                    # 🔥 Weighted rollout using softmax
+                    scores = [self.evaluate(state.generateSuccessor(self.index, a)) for a in actions]
+                    exp_scores = [math.exp(s / temperature) for s in scores]
+                    total = sum(exp_scores)
+                    probs = [e / total for e in exp_scores]
+                    action = random.choices(actions, weights=probs, k=1)[0]
                 else:
-                    bestScore = float('-inf')
-                    bestAction = None
-                    for a in actions:
-                        successor = state.generateSuccessor(self.index, a)
-                        score = self.evaluate(successor)
-                        if score > bestScore:
-                            bestScore = score
-                            bestAction = a
-                    action = bestAction
+                    # ε-greedy rollout (default heuristic mode)
+                    if random.random() < epsilon:
+                        action = random.choice(actions)
+                    else:
+                        bestScore = float('-inf')
+                        bestAction = None
+                        for a in actions:
+                            successor = state.generateSuccessor(self.index, a)
+                            score = self.evaluate(successor)
+                            if score > bestScore:
+                                bestScore = score
+                                bestAction = a
+                        action = bestAction
             else:
                 action = random.choice(actions)
 
             state = state.generateSuccessor(self.index, action)
 
         return self.evaluate(state)
+
 
     def backpropagate(self, node, reward):
         while node is not None:

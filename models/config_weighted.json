@@ -1,0 +1,9 @@
+{
+    "explorationConstant": 1.0,
+    "epsilon": 0.2,
+    "rolloutDepth": 5,
+    "useHeuristicRollouts": true,
+    "softmaxRollout": true,
+    "softmaxTemperature": 10.0
+  }
+  
