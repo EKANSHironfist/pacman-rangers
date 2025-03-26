@@ -72,25 +72,25 @@ class ActsAgent(CaptureAgent):
         self.stats["actionsTaken"] += 1
 
         return action
-    def chooseAction(self, gameState):
-        start = time.time()
-        root = Node(gameState, self.index)
-        time_limit = 0.2
-        while time.time() - start < time_limit:
-            node = self.select(root)
-            if node.untriedActions:
-                node = self.expand(node)
-            reward = self.simulate(node)
-            self.backpropagate(node, reward)
+    # def chooseAction(self, gameState):
+    #     start = time.time()
+    #     root = Node(gameState, self.index)
+    #     time_limit = 0.2
+    #     while time.time() - start < time_limit:
+    #         node = self.select(root)
+    #         if node.untriedActions:
+    #             node = self.expand(node)
+    #         reward = self.simulate(node)
+    #         self.backpropagate(node, reward)
 
-        action = self.bestChild(root, Cp=0).action
+    #     action = self.bestChild(root, Cp=0).action
 
-        # Track decision time
-        end = time.time()
-        self.stats["totalDecisionTime"] += (end - start)
-        self.stats["actionsTaken"] += 1
+    #     # Track decision time
+    #     end = time.time()
+    #     self.stats["totalDecisionTime"] += (end - start)
+    #     self.stats["actionsTaken"] += 1
 
-        return action
+    #     return action
 
     def select(self, node):
         Cp = MCTS_CONFIG.get("explorationConstant", 1 / math.sqrt(2))
@@ -157,45 +157,6 @@ class ActsAgent(CaptureAgent):
                 bestChild = child
         return bestChild
 
-    # def evaluate(self, gameState):
-    #     features = util.Counter()
-    #     state = gameState.getAgentState(self.index)
-    #     pos = state.getPosition()
-    #     foodList = self.getFood(gameState).asList()
-    #     walls = gameState.getWalls()
-
-    #     if foodList:
-    #         minFoodDist = min([self.getMazeDistance(pos, food) for food in foodList])
-    #         features['distanceToFood'] = -minFoodDist
-
-    #     features['carrying'] = state.numCarrying
-
-    #     if state.numCarrying > 0:
-    #         midX = (gameState.data.layout.width - 2) // 2
-    #         homeX = midX if self.red else midX + 1
-    #         homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
-    #                         if not walls[homeX][y]]
-    #         minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
-            
-    #         # Increase weight of distance to home based on food carried
-    #         features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
-
-    #     enemyIndices = self.getOpponents(gameState)
-    #     for enemy in enemyIndices:
-    #         enemyState = gameState.getAgentState(enemy)
-    #         if not enemyState.isPacman and enemyState.getPosition() is not None:
-    #             dist = self.getMazeDistance(pos, enemyState.getPosition())
-    #             if dist <= 7:
-    #                 features['ghostProximity'] += 1.0 / (dist + 0.1)
-    #     weights = {
-    #         'distanceToFood': 1.5,
-    #         'carrying': 20.0,
-    #         'ghostProximity': -2.0,
-    #         'distanceToHome': 2.0,
-    #     }
-
-    #     return features * weights
-
     def evaluate(self, gameState):
         features = util.Counter()
         state = gameState.getAgentState(self.index)
@@ -203,29 +164,21 @@ class ActsAgent(CaptureAgent):
         foodList = self.getFood(gameState).asList()
         walls = gameState.getWalls()
 
-        # Check for few food pellets left
-        state = gameState.getAgentState(self.index)
-        if state.numCarrying > 2:
-            bestDist = 9999
-            dist = self.getMazeDistance(pos, self.start)
-            features['distanceToStart'] = -1.0 / (dist + 0.1)  # Encourage returning to start
-
         if foodList:
             minFoodDist = min([self.getMazeDistance(pos, food) for food in foodList])
             features['distanceToFood'] = -minFoodDist
 
         features['carrying'] = state.numCarrying
 
-        # Return home mechanism
-        # if state.numCarrying > 0:
-        #     midX = (gameState.data.layout.width - 2) // 2
-        #     homeX = midX if self.red else midX + 1
-        #     homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
-        #                     if not walls[homeX][y]]
-        #     minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
+        if state.numCarrying > 0:
+            midX = (gameState.data.layout.width - 2) // 2
+            homeX = midX if self.red else midX + 1
+            homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
+                            if not walls[homeX][y]]
+            minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
             
-        #     # Increase weight of distance to home based on food carried
-        #     features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
+            # Increase weight of distance to home based on food carried
+            features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
 
         enemyIndices = self.getOpponents(gameState)
         for enemy in enemyIndices:
@@ -234,16 +187,63 @@ class ActsAgent(CaptureAgent):
                 dist = self.getMazeDistance(pos, enemyState.getPosition())
                 if dist <= 7:
                     features['ghostProximity'] += 1.0 / (dist + 0.1)
-
         weights = {
             'distanceToFood': 1.5,
             'carrying': 20.0,
             'ghostProximity': -8.0,
-         
-            'distanceToStart': 7.0  # Add weight for returning to start when few food pellets left
+            'distanceToHome': 2.0,
         }
 
         return features * weights
+
+    # def evaluate(self, gameState):
+    #     features = util.Counter()
+    #     state = gameState.getAgentState(self.index)
+    #     pos = state.getPosition()
+    #     foodList = self.getFood(gameState).asList()
+    #     walls = gameState.getWalls()
+
+    #     # Check for few food pellets left
+    #     state = gameState.getAgentState(self.index)
+    #     if state.numCarrying > 2:
+    #         bestDist = 9999
+    #         dist = self.getMazeDistance(pos, self.start)
+    #         features['distanceToStart'] = -1.0 / (dist + 0.1)  # Encourage returning to start
+
+    #     if foodList:
+    #         minFoodDist = min([self.getMazeDistance(pos, food) for food in foodList])
+    #         features['distanceToFood'] = -minFoodDist
+
+    #     features['carrying'] = state.numCarrying
+
+    #     # Return home mechanism
+    #     # if state.numCarrying > 0:
+    #     #     midX = (gameState.data.layout.width - 2) // 2
+    #     #     homeX = midX if self.red else midX + 1
+    #     #     homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
+    #     #                     if not walls[homeX][y]]
+    #     #     minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
+            
+    #     #     # Increase weight of distance to home based on food carried
+    #     #     features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
+
+    #     enemyIndices = self.getOpponents(gameState)
+    #     for enemy in enemyIndices:
+    #         enemyState = gameState.getAgentState(enemy)
+    #         if not enemyState.isPacman and enemyState.getPosition() is not None:
+    #             dist = self.getMazeDistance(pos, enemyState.getPosition())
+    #             if dist <= 7:
+    #                 features['ghostProximity'] += 1.0 / (dist + 0.1)
+
+    #     weights = {
+    #         'distanceToFood': 1.5,
+    #         'carrying': 20.0,
+    #         'ghostProximity': -8.0,
+         
+    #         'distanceToStart': 7.0  # Add weight for returning to start when few food pellets left
+    #     }
+
+    #     return features * weights
 
     def final(self, gameState):
         CaptureAgent.final(self, gameState)
