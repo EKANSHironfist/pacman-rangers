@@ -3,7 +3,7 @@ import random, time, util, math, os, json
 from game import Directions
 import game
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_custom.json")
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config_rave.json")
 with open(CONFIG_PATH) as f:
     MCTS_CONFIG = json.load(f)
 
@@ -24,6 +24,10 @@ class Node:
         if Directions.STOP in self.untriedActions:
             self.untriedActions.remove(Directions.STOP)
 
+        # 🔵 RAVE statistics
+        self.raveVisits = util.Counter()
+        self.raveRewards = util.Counter()
+
 class OffensiveAgent(CaptureAgent):
     def registerInitialState(self, gameState):
         self.start = gameState.getAgentPosition(self.index)
@@ -35,8 +39,6 @@ class OffensiveAgent(CaptureAgent):
 
     def chooseAction(self, gameState):
         start = time.time()
-        
-        # Check if there are few food pellets left
         foodLeft = len(self.getFood(gameState).asList())
         state = gameState.getAgentState(self.index)
         if state.numCarrying > 2:
@@ -54,19 +56,17 @@ class OffensiveAgent(CaptureAgent):
             if bestAction:
                 return bestAction
 
-        # Proceed with MCTS if not returning home
         root = Node(gameState, self.index)
         time_limit = 0.2
         while time.time() - start < time_limit:
             node = self.select(root)
             if node.untriedActions:
                 node = self.expand(node)
-            reward = self.simulate(node)
-            self.backpropagate(node, reward)
+            reward, actionsTaken = self.simulate(node)
+            self.backpropagate(node, reward, actionsTaken)
 
         action = self.bestChild(root, Cp=0).action
 
-        # Track decision time
         end = time.time()
         self.stats["totalDecisionTime"] += (end - start)
         self.stats["actionsTaken"] += 1
@@ -92,6 +92,8 @@ class OffensiveAgent(CaptureAgent):
         epsilon = MCTS_CONFIG.get("epsilon", 0.2)
         useHeuristic = MCTS_CONFIG.get("useHeuristicRollouts", False)
 
+        actionsTaken = set()
+
         for _ in range(depth):
             actions = state.getLegalActions(self.index)
             actions = [a for a in actions if a != Directions.STOP]
@@ -114,25 +116,39 @@ class OffensiveAgent(CaptureAgent):
             else:
                 action = random.choice(actions)
 
+            actionsTaken.add(action)
             state = state.generateSuccessor(self.index, action)
 
-        return self.evaluate(state)
+        return self.evaluate(state), actionsTaken
 
-    def backpropagate(self, node, reward):
+    def backpropagate(self, node, reward, actionsTaken):
         while node is not None:
             node.visits += 1
             node.totalReward += reward
+            for action in actionsTaken:
+                node.raveVisits[action] += 1
+                node.raveRewards[action] += reward
             node = node.parent
 
     def bestChild(self, node, Cp):
         bestScore = float('-inf')
         bestChild = None
+        betaConst = MCTS_CONFIG.get("raveBetaConstant", 300)  # 🔵 Beta parameter
+
         for child in node.children:
             if child.visits == 0:
                 continue
-            exploit = child.totalReward / child.visits
-            explore = Cp * math.sqrt(2 * math.log(node.visits) / child.visits)
-            score = exploit + explore
+            Q = child.totalReward / child.visits
+            N = node.visits
+            n = child.visits
+            raveN = node.raveVisits[child.action]
+            raveQ = node.raveRewards[child.action] / raveN if raveN > 0 else 0
+
+            beta = raveN / (n + raveN + 1e-6 + (n * raveN / betaConst))
+
+            score = (1 - beta) * Q + beta * raveQ
+            score += Cp * math.sqrt(math.log(N) / n)
+
             if score > bestScore:
                 bestScore = score
                 bestChild = child
@@ -155,10 +171,8 @@ class OffensiveAgent(CaptureAgent):
             midX = (gameState.data.layout.width - 2) // 2
             homeX = midX if self.red else midX + 1
             homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
-                            if not walls[homeX][y]]
+                             if not walls[homeX][y]]
             minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
-            
-            # Increase weight of distance to home based on food carried
             features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
 
         enemyIndices = self.getOpponents(gameState)
@@ -168,6 +182,7 @@ class OffensiveAgent(CaptureAgent):
                 dist = self.getMazeDistance(pos, enemyState.getPosition())
                 if dist <= 7:
                     features['ghostProximity'] += 1.0 / (dist + 0.1)
+
         weights = {
             'distanceToFood': 1.5,
             'carrying': 20.0,
@@ -179,14 +194,12 @@ class OffensiveAgent(CaptureAgent):
 
     def final(self, gameState):
         CaptureAgent.final(self, gameState)
-
         teamScore = gameState.getScore()
         won = teamScore > 0 if self.red else teamScore < 0
-
         avgTime = self.stats["totalDecisionTime"] / max(1, self.stats["actionsTaken"])
 
         result = {
-            "agentType": "Guided" if MCTS_CONFIG.get("useHeuristicRollouts") else "Vanilla",
+            "agentType": "RAVE",
             "won": won,
             "score": teamScore,
             "avgDecisionTime": round(avgTime, 4),
@@ -195,7 +208,7 @@ class OffensiveAgent(CaptureAgent):
             "Cp": MCTS_CONFIG["explorationConstant"]
         }
 
-        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG["rolloutDepth"]}.csv")
+        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG["rolloutDepth"]}_RAVE.csv")
         file_exists = os.path.isfile(log_path)
         with open(log_path, "a") as f:
             if not file_exists:
@@ -203,7 +216,6 @@ class OffensiveAgent(CaptureAgent):
             f.write(",".join(str(v) for v in result.values()) + "\n")
 
 class DefensiveAgent(OffensiveAgent):
-    
     def evaluate(self, gameState):
         features = util.Counter()
         state = gameState.getAgentState(self.index)
@@ -221,10 +233,8 @@ class DefensiveAgent(OffensiveAgent):
             midX = (gameState.data.layout.width - 2) // 2
             homeX = midX if self.red else midX + 1
             homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
-                            if not walls[homeX][y]]
+                             if not walls[homeX][y]]
             minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
-            
-            # Increase weight of distance to home based on food carried
             features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
 
         enemyIndices = self.getOpponents(gameState)
@@ -234,6 +244,7 @@ class DefensiveAgent(OffensiveAgent):
                 dist = self.getMazeDistance(pos, enemyState.getPosition())
                 if dist <= 7:
                     features['ghostProximity'] += 1.0 / (dist + 0.1)
+
         weights = {
             'distanceToFood': 1.5,
             'carrying': 20.0,

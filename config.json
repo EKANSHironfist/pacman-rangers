@@ -1,6 +1,7 @@
 {
-  "rolloutDepth": 5,
+  "explorationConstant": 1.0,
   "epsilon": 0.2,
-  "explorationConstant": 0.707,
-  "useHeuristicRollouts": true
+  "rolloutDepth": 5,
+  "useHeuristicRollouts": false,
+  "raveBetaConstant": 300
 }
