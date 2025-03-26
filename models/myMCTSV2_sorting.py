@@ -214,45 +214,21 @@ class OffensiveAgent(CaptureAgent):
             f.write(",".join(str(v) for v in result.values()) + "\n")
 
 class DefensiveAgent(OffensiveAgent):
-    
     def evaluate(self, gameState):
         features = util.Counter()
         state = gameState.getAgentState(self.index)
         pos = state.getPosition()
-        foodList = self.getFood(gameState).asList()
-        walls = gameState.getWalls()
 
-        if foodList:
-            minFoodDist = min([self.getMazeDistance(pos, food) for food in foodList])
-            features['distanceToFood'] = -minFoodDist
-
-        features['carrying'] = state.numCarrying
-
-        if state.numCarrying > 0:
-            midX = (gameState.data.layout.width - 2) // 2
-            homeX = midX if self.red else midX + 1
-            homePositions = [(homeX, y) for y in range(gameState.data.layout.height)
-                            if not walls[homeX][y]]
-            minHomeDist = min([self.getMazeDistance(pos, hp) for hp in homePositions])
-            
-            # Increase weight of distance to home based on food carried
-            features['distanceToHome'] = -(minHomeDist / (state.numCarrying + 1))
-
+        # Detect enemy Pacmen
         enemyIndices = self.getOpponents(gameState)
         for enemy in enemyIndices:
             enemyState = gameState.getAgentState(enemy)
-            if not enemyState.isPacman and enemyState.getPosition() is not None:
+            if enemyState.isPacman and enemyState.getPosition() is not None:
                 dist = self.getMazeDistance(pos, enemyState.getPosition())
-                if dist <= 7:
-                    features['ghostProximity'] += 1.0 / (dist + 0.1)
+                features['chaseEnemy'] = -dist  # Prioritize chasing Pacmen
+
         weights = {
-            'distanceToFood': 1.5,
-            'carrying': 20.0,
-            'ghostProximity': -8.0,
-            'distanceToHome': 2.0,
+            'chaseEnemy': 10.0,
         }
 
         return features * weights
-
-
-
