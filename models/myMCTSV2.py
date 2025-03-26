@@ -24,7 +24,7 @@ class Node:
         if Directions.STOP in self.untriedActions:
             self.untriedActions.remove(Directions.STOP)
 
-class ActsAgent(CaptureAgent):
+class OffensiveAgent(CaptureAgent):
     def registerInitialState(self, gameState):
         self.start = gameState.getAgentPosition(self.index)
         CaptureAgent.registerInitialState(self, gameState)
