@@ -980,9 +980,7 @@ def runGames( layouts, agents, display, length, numGames, record, numTraining, r
         gameDisplay = textDisplay.NullGraphics()
         rules.quiet = True
     else:
-        #gameDisplay = display
-        import textDisplay
-        gameDisplay = textDisplay.NullGraphics()
+        gameDisplay = display
         rules.quiet = False
     g = rules.newGame( layout, agents, gameDisplay, length, muteAgents, catchExceptions )
     g.run()
