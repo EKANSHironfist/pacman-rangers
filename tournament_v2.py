@@ -66,15 +66,16 @@ def run_match(red, blue):
     }
 
 # === RUN MATCHES ===
-for red, blue in itertools.permutations(AGENTS, 2):
-    for _ in range(MATCHES_PER_PAIR):
-        result = pd.DataFrame([run_match(red, blue)])
-        if not os.path.exists(OUTPUT_LOG):
-            result.to_csv(OUTPUT_LOG)
-        else:
-            df = pd.read_csv(OUTPUT_LOG)
-            df = pd.concat([df, result], ignore_index=True)
-            df.to_csv(OUTPUT_LOG)
+for red in ["myHeuristic", "myMCTS", "myMCTSV2_rave"]:
+    for blue in AGENTS:
+        for _ in range(MATCHES_PER_PAIR):
+            result = pd.DataFrame([run_match(red, blue)])
+            if not os.path.exists(OUTPUT_LOG):
+                result.to_csv(OUTPUT_LOG)
+            else:
+                df = pd.read_csv(OUTPUT_LOG)
+                df = pd.concat([df, result], ignore_index=True)
+                df.to_csv(OUTPUT_LOG)
 
 # === SAVE TO CSV ===
 # df = pd.DataFrame(results)
