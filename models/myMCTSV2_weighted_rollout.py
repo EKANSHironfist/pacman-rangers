@@ -208,7 +208,7 @@ class OffensiveAgent(CaptureAgent):
             "Cp": MCTS_CONFIG["explorationConstant"]
         }
 
-        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG["rolloutDepth"]}.csv")
+        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG['rolloutDepth']}.csv")
         file_exists = os.path.isfile(log_path)
         with open(log_path, "a") as f:
             if not file_exists:

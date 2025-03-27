@@ -196,14 +196,20 @@ class OffensiveAgent(CaptureAgent):
             "Cp": MCTS_CONFIG["explorationConstant"]
         }
 
-        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG["rolloutDepth"]}.csv")
+        log_path = os.path.join(os.path.dirname(__file__), f"experiment_rollout_depth_{MCTS_CONFIG['rolloutDepth']}.csv")
         file_exists = os.path.isfile(log_path)
         with open(log_path, "a") as f:
             if not file_exists:
                 f.write(",".join(result.keys()) + "\n")
             f.write(",".join(str(v) for v in result.values()) + "\n")
 
+
 class DefensiveAgent(OffensiveAgent):
+    def __init__(self, index):
+        super().__init__(index)
+        self.patrolTarget = None  # Target patrol area
+        self.lastEnemyLocation = None  # Where the last enemy was caught
+
     def evaluate(self, gameState):
         features = util.Counter()
         state = gameState.getAgentState(self.index)
@@ -211,14 +217,40 @@ class DefensiveAgent(OffensiveAgent):
 
         # Detect enemy Pacmen
         enemyIndices = self.getOpponents(gameState)
+        enemyDetected = False
         for enemy in enemyIndices:
             enemyState = gameState.getAgentState(enemy)
             if enemyState.isPacman and enemyState.getPosition() is not None:
                 dist = self.getMazeDistance(pos, enemyState.getPosition())
                 features['chaseEnemy'] = -dist  # Prioritize chasing Pacmen
+                self.lastEnemyLocation = enemyState.getPosition()  # Track last seen location
+                enemyDetected = True
+                break  # Focus on one enemy at a time
+
+        # Patrol behavior when no enemy is detected
+        if not enemyDetected:
+            if self.lastEnemyLocation:
+                # Patrol around the last enemy location after capture
+                self.patrolTarget = self.lastEnemyLocation
+            else:
+                # Default patrol target if no enemy was seen yet
+                if self.patrolTarget is None or pos == self.patrolTarget:
+                    self.patrolTarget = self.getRandomHomePosition(gameState)
+            
+            patrolDist = self.getMazeDistance(pos, self.patrolTarget)
+            features['patrol'] = -patrolDist  # Encourage patrolling behavior
 
         weights = {
             'chaseEnemy': 10.0,
+            'patrol': 2.0,
         }
 
         return features * weights
+
+    def getRandomHomePosition(self, gameState):
+        """ Selects a random position in the home area for patrolling. """
+        width = gameState.data.layout.width
+        height = gameState.data.layout.height
+        homePositions = [(x, y) for x in range(width // 2) for y in range(height)
+                         if not gameState.hasWall(x, y)]
+        return random.choice(homePositions) if homePositions else None
