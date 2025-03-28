@@ -66,7 +66,7 @@ def run_match(red, blue):
     }
 
 # === RUN MATCHES ===
-for red in ["myHeuristic", "myMCTS"]:
+for red in ["myMCTS"]:
     for blue in AGENTS:
         for _ in range(MATCHES_PER_PAIR):
             result = pd.DataFrame([run_match(red, blue)])
