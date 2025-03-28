@@ -9,7 +9,7 @@ from datetime import datetime
 AGENTS = ["myMCTSV2", "myMCTSV2_sorting","myMCTSV2_weighted_rollout"]      # you can add your model pair here 
 CAPTURE_SCRIPT = "capture.py"
 OUTPUT_LOG = "tournament_results.csv"
-MATCHES_PER_PAIR = 50 # change that number to 50 if you want to run 100 matches per  model pair
+MATCHES_PER_PAIR = 30 # change that number to 50 if you want to run 100 matches per  model pair
 VISUAL = True           # Set to False to run silently
 MATCH_TIMEOUT = 600          # Max seconds per match
 
@@ -66,7 +66,7 @@ def run_match(red, blue):
     }
 
 # === RUN MATCHES ===
-for red in ["myHeuristic", "myMCTS", "myMCTSV2_rave"]:
+for red in ["myHeuristic", "myMCTS"]:
     for blue in AGENTS:
         for _ in range(MATCHES_PER_PAIR):
             result = pd.DataFrame([run_match(red, blue)])
