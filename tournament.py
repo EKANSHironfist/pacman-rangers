@@ -8,7 +8,7 @@ from datetime import datetime
 # === CONFIGURATION ===
 AGENTS = ["myMCTSV2_rave"] #   "myHeuristics", "myMCTS", "myMCTSV2"
 CAPTURE_SCRIPT = "capture.py"
-OUTPUT_LOG = "tournament_results.csv"
+OUTPUT_LOG = "tournament_rainbow.csv"
 MATCHES_PER_PAIR = 30 # change that number to 50 if you want to run 100 matches per  model pair
 VISUAL = True           # Set to False to run silently
 MATCH_TIMEOUT = 600          # Max seconds per match
