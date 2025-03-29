@@ -89,3 +89,5 @@ MatchID,RedAgent,BlueAgent,RedScore,BlueScore,Winner
 20250329103349199860,myHeuristic,myMCTSV2_weighted_rollout,0,6,myMCTSV2_weighted_rollout
 20250329103808838234,myHeuristic,myMCTSV2_weighted_rollout,0,7,myMCTSV2_weighted_rollout
 20250329104224223035,myHeuristic,myMCTSV2_weighted_rollout,0,9,myMCTSV2_weighted_rollout
+20250329104626971031,myMCTSV2_sorting,myHeuristic,9,0,myMCTSV2_sorting
+20250329104839527623,myMCTSV2_sorting,myHeuristic,9,0,myMCTSV2_sorting
